@@ -33,6 +33,8 @@ project(OLED_Test C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+add_subdirectory(../pico-ssd1306 pico-ssd1306_build)
+
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(OLED_Test OLED_Test.cpp ssd1306.c  )
@@ -47,7 +49,8 @@ pico_enable_stdio_usb(OLED_Test 1)
 # Add the standard library to the build
 target_link_libraries(OLED_Test
         pico_stdlib
-        hardware_i2c)
+        hardware_i2c
+        ssd1306)
 
 # Add the standard include files to the build
 target_include_directories(OLED_Test PRIVATE

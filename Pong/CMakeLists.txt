@@ -35,7 +35,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(Pong Pong.cpp )
+add_executable(Pong Pong.cpp ssd1306.cpp )
 
 pico_set_program_name(Pong "Pong")
 pico_set_program_version(Pong "0.1")
@@ -57,7 +57,7 @@ target_include_directories(Pong PRIVATE
 target_link_libraries(Pong 
         hardware_spi
         hardware_i2c
-        )
+        ssd1306)
 
 pico_add_extra_outputs(Pong)
 
