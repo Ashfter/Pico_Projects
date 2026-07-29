@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
 
@@ -7,26 +8,32 @@ extern "C"
     #include "ssd1306.h"
 }
 
-#define I2C_PORT i2c1          
-#define I2C_SDA_PIN 4          
-#define I2C_SCL_PIN 3
-
-void setup_display_hardware() {
-    i2c_init(I2C_PORT, 400 * 1000);
-    gpio_set_function(I2C_SCL_PIN, GPIO_FUNC_I2C);
-    gpio_set_function(I2C_SDA_PIN, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C_SCL_PIN);
-    gpio_pull_up(I2C_SDA_PIN);
-}
+#define I2C_PORT i2c0
+#define SDA_PIN 4
+#define SCL_PIN 5
 
 int main()
 {
     stdio_init_all();
-    setup_display_hardware();
 
+    // 1. Exact same initialization that worked for the scanner
+    i2c_init(I2C_PORT, 100000);
+    gpio_set_function(SDA_PIN, GPIO_FUNC_I2C);
+    gpio_set_function(SCL_PIN, GPIO_FUNC_I2C);
+    gpio_pull_up(SDA_PIN);
+    gpio_pull_up(SCL_PIN);
+
+    sleep_ms(1000); // Allow display to power up fully
+
+    // 2. Initialize display struct with zero-out to prevent garbage memory flags
     ssd1306_t disp;
+    memset(&disp, 0, sizeof(ssd1306_t));
+
+    // 3. Fire up the driver at address 0x3C
     ssd1306_init(&disp, 128, 64, 0x3C, I2C_PORT);
+  
     ssd1306_poweron(&disp);
+    ssd1306_clear(&disp);
 
     // set the in and out pins
     // USS trigger
@@ -45,9 +52,9 @@ int main()
     uint64_t startTime;
     uint64_t endTime;
     uint64_t totalTime;
+    uint32_t timeout;
     float distance;
     char distanceStr[32];
-    uint32_t last_display_update = 0;
 
     while(true)
     {
@@ -56,8 +63,19 @@ int main()
         sleep_us(10);
         gpio_put(0, 0);
 
-        // start the time 
         startTime = time_us_64();
+        
+        // wait for the pin to go to zero
+        timeout = 0;
+        while(gpio_get(1) == 0)
+        {
+            // wait for the pin to go high, or timeout to be reached
+            timeout++;
+            if(timeout > 500000)
+            {
+                break;
+            }
+        }
 
         // while loop for waiting
         while (gpio_get(1) == 1)
@@ -68,7 +86,7 @@ int main()
         // get the end time 
         endTime = time_us_64();
 
-        // calculate the difference in time
+        // calculate the difference in time and initialize distance
         totalTime = endTime - startTime;
 
         // if total time is less than 380000 aka its timeout time
@@ -107,17 +125,18 @@ int main()
                 gpio_put(2, 0);
                 sleep_ms(50);
             }
+            
+            // save string and clear display
+            snprintf(distanceStr, sizeof(distanceStr), "%.2f cm", distance);
+            ssd1306_clear(&disp);
 
-            // Only update the display every 200ms so I2C doesn't choke the loop timing
-            uint32_t current_time = to_ms_since_boot(get_absolute_time());
-            if (current_time - last_display_update > 200) {
-                snprintf(distanceStr, sizeof(distanceStr), "%.2f cm", distance);
-                ssd1306_clear(&disp);
-                ssd1306_draw_string(&disp, 0, 0, 1, "Distance:");
-                ssd1306_draw_string(&disp, 0, 16, 1, distanceStr);
-                ssd1306_show(&disp);
-                last_display_update = current_time;
-            }
+            // draw string
+            ssd1306_draw_string(&disp, 0, 0, 2, "Distance:");
+            ssd1306_draw_string(&disp, 0, 16, 2, distanceStr);
+
+            // display string
+            ssd1306_show(&disp);
         }
     }
+
 }
