@@ -65,7 +65,7 @@ int main()
 
         startTime = time_us_64();
         
-        // wait for the pin to go to zero
+        // wait for the pin to go offzero
         timeout = 0;
         while(gpio_get(1) == 0)
         {
