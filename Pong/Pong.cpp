@@ -115,6 +115,8 @@ int main()
 
     char menu[16];
 
+    int count = 0;
+
     // player variables
     paddle playerPaddle;
     playerPaddle.setx(0);
@@ -166,15 +168,21 @@ int main()
         playerPaddle.sety(paddle_y);
 
         // ai movement
-        if (gameBall.y > 64 - 12)
+        if (count == 0)
         {
-            aiPaddle.sety(52);
+            if (gameBall.y > 64 - 12)
+            {
+                aiPaddle.sety(52);
+            }
+            else if (gameBall.y - aiPaddle.gety() +  aiPaddle.getheight() > 4)
+            {
+                aiPaddle.sety(aiPaddle.gety() + 2);
+            }
+            else if (gameBall.y - aiPaddle.gety() < 4)
+            {
+                aiPaddle.sety(aiPaddle.gety() - 2);
+            }
         }
-        else
-        {
-            aiPaddle.sety(gameBall.y);
-        }
-        
 
         // ball movement
         // check for collision 
@@ -296,7 +304,7 @@ int main()
         }
 
         
-        sleep_ms(10);
+        sleep_ms(1);
     }
 }
 
